@@ -45,14 +45,14 @@
       }
 
       .wrap {
-        width: min(1080px, calc(100% - 40px));
+        width: min(1080px, calc(100% - 32px));
         margin: 0 auto;
-        padding: 56px 0 80px;
+        padding: clamp(28px, 6vw, 56px) 0 clamp(48px, 10vw, 80px);
       }
 
       .brand {
         font-family: "Bebas Neue", sans-serif;
-        font-size: clamp(3rem, 8vw, 5.5rem);
+        font-size: clamp(2.6rem, 12vw, 5.5rem);
         letter-spacing: 0.06em;
         line-height: 0.92;
         margin-bottom: 14px;
@@ -68,14 +68,43 @@
       .lede {
         max-width: 42ch;
         color: var(--muted);
-        font-size: 1.1rem;
+        font-size: clamp(1rem, 2.8vw, 1.1rem);
         margin-bottom: 36px;
+      }
+
+      .cta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        margin-top: -12px;
+        margin-bottom: 28px;
+      }
+
+      .cta-primary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 44px;
+        padding: 12px 18px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, var(--teal), #0d9488);
+        color: #041016;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .cta-secondary {
+        color: var(--muted);
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
       }
 
       .hero {
         display: grid;
         grid-template-columns: 1.1fr 0.9fr;
-        gap: 36px;
+        gap: clamp(20px, 4vw, 36px);
         align-items: center;
         margin-bottom: 56px;
       }
@@ -83,6 +112,10 @@
       @media (max-width: 860px) {
         .hero {
           grid-template-columns: 1fr;
+        }
+
+        .lede {
+          max-width: none;
         }
       }
 
@@ -171,6 +204,22 @@
         .formats {
           grid-template-columns: 1fr;
         }
+
+        pre {
+          font-size: 0.78rem;
+          padding: 14px 14px;
+        }
+
+        .step {
+          grid-template-columns: 44px 1fr;
+          padding: 14px 14px;
+        }
+      }
+
+      @media (max-width: 420px) {
+        .wrap {
+          width: calc(100% - 24px);
+        }
       }
 
       .fmt {
@@ -229,20 +278,16 @@
             Live demo + studio UI. HQ export uses HyperFrames + FFmpeg on your machine
             (same quality as the CLI) — preview works in the browser now.
           </p>
-          <p style="margin-top: -12px; margin-bottom: 28px">
+          <div class="cta-row">
+            <a class="cta-primary" href="./studio/">Open live studio</a>
             <a
-              href="./studio/"
-              style="display:inline-block;padding:12px 18px;border-radius:999px;background:linear-gradient(90deg,var(--teal),#0d9488);color:#041016;font-weight:700;text-decoration:none"
-              >Open live studio</a
-            >
-            <a
+              class="cta-secondary"
               href="https://github.com/dangijaswant/html-to-video"
               target="_blank"
               rel="noreferrer"
-              style="margin-left:12px;color:var(--muted)"
               >GitHub</a
             >
-          </p>
+          </div>
         </div>
         <div>
           <div class="stage">
