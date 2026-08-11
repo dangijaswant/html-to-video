@@ -96,15 +96,18 @@ function buildPreviewHtml(source, width, height, viewW, viewH) {
     margin: 0 !important;
     overflow: hidden !important;
     background: transparent !important;
-    display: grid !important;
-    place-items: center !important;
+    position: relative !important;
   }
   #root {
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
     width: ${width}px !important;
     height: ${height}px !important;
-    transform: scale(${s}) !important;
+    transform: translate(-50%, -50%) scale(${s}) !important;
     transform-origin: center center !important;
-    flex-shrink: 0 !important;
+    display: grid !important;
+    place-items: center !important;
   }
 </style>
 <script data-studio-preview="1">
