@@ -4,6 +4,8 @@ const exportBtn = document.getElementById("exportBtn");
 const statusText = document.getElementById("statusText");
 const progressFill = document.getElementById("progressFill");
 const downloads = document.getElementById("downloads");
+const songNameInput = document.getElementById("songName");
+const songDescInput = document.getElementById("songDescInput");
 
 /** Local HQ API (HyperFrames + FFmpeg). On GitHub Pages, point at localhost. */
 const API_BASE =
@@ -28,7 +30,62 @@ function setProgress(pct) {
   progressFill.style.width = `${Math.max(0, Math.min(100, pct))}%`;
 }
 
-/** HyperFrames comps are paused; inject loop of the visible mid-section for studio preview. */
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function descToHtml(text) {
+  return escapeHtml(text)
+    .split(/\r?\n/)
+    .map((line) => line.trimEnd())
+    .join("<br />");
+}
+
+function htmlToDesc(html) {
+  return String(html || "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .trim();
+}
+
+function syncSongFieldsFromHtml() {
+  const html = editor.value;
+  const titleMatch = html.match(/id=["']songTitle["'][^>]*>([\s\S]*?)<\/h1>/i);
+  const descMatch = html.match(/id=["']songDesc["'][^>]*>([\s\S]*?)<\/p>/i);
+  if (titleMatch) songNameInput.value = titleMatch[1].replace(/<[^>]+>/g, "").trim();
+  if (descMatch) songDescInput.value = htmlToDesc(descMatch[1]);
+}
+
+function applySongMeta() {
+  const title = songNameInput.value.trim() || "Untitled";
+  const descHtml = descToHtml(songDescInput.value.trim() || "");
+  let html = editor.value;
+  if (!/id=["']songTitle["']/i.test(html) || !/id=["']songDesc["']/i.test(html)) {
+    setStatus("This template has no songTitle/songDesc fields. Load the music player template.", "error");
+    return;
+  }
+  html = html.replace(
+    /(id=["']songTitle["'][^>]*>)([\s\S]*?)(<\/h1>)/i,
+    `$1${escapeHtml(title)}$3`
+  );
+  html = html.replace(
+    /(id=["']songDesc["'][^>]*>)([\s\S]*?)(<\/p>)/i,
+    `$1${descHtml}$3`
+  );
+  editor.value = html;
+  refreshPreview();
+  setStatus(`Song updated: “${title}”.`);
+}
+
+/** HyperFrames comps are paused; preview plays (sped up for long timelines). */
 function buildPreviewHtml(source) {
   const bootstrap = `
 <style data-studio-preview="1">
@@ -42,19 +99,27 @@ function buildPreviewHtml(source) {
     var tl = tls.main || Object.values(tls)[0];
     if (!tl) return false;
     try {
-      // Avoid the final fade-to-empty: yoyo the visible middle of the sting
-      tl.pause();
-      var start = 0.22;
-      var end = 0.72;
-      tl.progress(start);
       if (window.__studioPreviewTween) window.__studioPreviewTween.kill();
-      window.__studioPreviewTween = gsap.to(tl, {
-        progress: end,
-        duration: Math.max(1.6, (end - start) * tl.duration()),
-        ease: "none",
-        repeat: -1,
-        yoyo: true,
-      });
+      tl.pause();
+      var dur = tl.duration() || 1;
+      if (dur > 12) {
+        // Long comps (e.g. 3:00 player): scrub full range in ~10s
+        tl.progress(0);
+        tl.timeScale(dur / 10);
+        tl.play(0);
+        tl.repeat(-1);
+      } else {
+        var start = 0.22;
+        var end = 0.72;
+        tl.progress(start);
+        window.__studioPreviewTween = gsap.to(tl, {
+          progress: end,
+          duration: Math.max(1.6, (end - start) * dur),
+          ease: "none",
+          repeat: -1,
+          yoyo: true,
+        });
+      }
       return true;
     } catch (e) {
       console.error("[studio preview]", e);
@@ -83,9 +148,8 @@ let previewObjectUrl = null;
 function fitPreviewFrame(width, height) {
   const wrap = preview.parentElement;
   if (!wrap) return;
-  const pad = 0;
-  const ww = Math.max(wrap.clientWidth - pad, 80);
-  const wh = Math.max(wrap.clientHeight - pad, 80);
+  const ww = Math.max(wrap.clientWidth, 80);
+  const wh = Math.max(wrap.clientHeight, 80);
   const s = Math.min(ww / width, wh / height);
   preview.style.width = `${width}px`;
   preview.style.height = `${height}px`;
@@ -93,7 +157,6 @@ function fitPreviewFrame(width, height) {
   preview.style.transformOrigin = "top left";
   preview.style.border = "0";
   preview.style.background = "transparent";
-  // Collapse layout to the scaled visual size so the checkerboard fits
   preview.style.marginBottom = `${height * s - height}px`;
   preview.style.marginRight = `${width * s - width}px`;
 }
@@ -117,32 +180,43 @@ function refreshPreview() {
   preview.src = previewObjectUrl;
 }
 
-async function loadAether() {
-  setStatus("Loading Aether template…");
+async function fetchStaticTemplate(name) {
+  const res = await fetch(new URL(`../templates/${name}.html`, location.href));
+  if (!res.ok) throw new Error(`Template ${name} missing`);
+  return res.text();
+}
+
+async function loadTemplate(id, { duration } = {}) {
+  setStatus(`Loading ${id}…`);
+  let html;
   if (!API_BASE) {
-    const res = await fetch(api("/api/template/aether"));
+    const res = await fetch(api(`/api/template/${id === "music-player" ? "music-player" : id}`));
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to load template");
-    editor.value = data.html;
-    refreshPreview();
-    setStatus("Aether template loaded.");
-    return;
+    html = data.html;
+  } else {
+    try {
+      html = await fetchStaticTemplate(id === "aether" ? "aether" : "music-player");
+    } catch {
+      const path = id === "aether" ? "/api/template/aether" : "/api/template/music-player";
+      const res = await fetch(api(path));
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load template");
+      html = data.html;
+    }
   }
 
-  try {
-    const res = await fetch(new URL("../templates/aether.html", location.href));
-    if (!res.ok) throw new Error("Template missing");
-    editor.value = await res.text();
-    refreshPreview();
-    setStatus("Aether template loaded. Export HQ needs local engine on :8787.");
-  } catch {
-    const res = await fetch(api("/api/template/aether"));
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to load template");
-    editor.value = data.html;
-    refreshPreview();
-    setStatus("Aether template loaded.");
+  editor.value = html;
+  if (typeof duration === "number") {
+    document.getElementById("duration").value = String(duration);
   }
+  syncSongFieldsFromHtml();
+  refreshPreview();
+  setStatus(
+    API_BASE
+      ? `${id} loaded. Export HQ needs local engine on :8787.`
+      : `${id} loaded.`
+  );
 }
 
 async function ensureEngine() {
@@ -179,6 +253,9 @@ async function exportHq() {
     setStatus("Select at least one output format.", "error");
     return;
   }
+  // Keep HTML in sync with song fields before export
+  if (/id=["']songTitle["']/i.test(editor.value)) applySongMeta();
+
   exportBtn.disabled = true;
   downloads.innerHTML = "";
   setProgress(2);
@@ -221,10 +298,17 @@ async function exportHq() {
   }
 }
 
-document.getElementById("loadAether").addEventListener("click", () => {
-  loadAether().catch((e) => setStatus(e.message, "error"));
+document.getElementById("loadMusic").addEventListener("click", () => {
+  loadTemplate("music-player", { duration: 180 }).catch((e) => setStatus(e.message, "error"));
 });
-document.getElementById("refreshPreview").addEventListener("click", refreshPreview);
+document.getElementById("loadAether").addEventListener("click", () => {
+  loadTemplate("aether", { duration: 5 }).catch((e) => setStatus(e.message, "error"));
+});
+document.getElementById("applySongMeta").addEventListener("click", applySongMeta);
+document.getElementById("refreshPreview").addEventListener("click", () => {
+  if (/id=["']songTitle["']/i.test(editor.value)) applySongMeta();
+  else refreshPreview();
+});
 exportBtn.addEventListener("click", exportHq);
 editor.addEventListener("keydown", (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
@@ -237,25 +321,16 @@ editor.addEventListener("keydown", (e) => {
   document.getElementById(id).addEventListener("change", refreshPreview);
 });
 
+songNameInput.addEventListener("change", applySongMeta);
+songDescInput.addEventListener("change", applySongMeta);
+
 window.addEventListener("resize", () => {
   const width = Number(document.getElementById("width").value) || 1920;
   const height = Number(document.getElementById("height").value) || 1080;
   if (preview.src) fitPreviewFrame(width, height);
 });
 
-loadAether().catch(() => {
-  editor.value = `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <style>
-    html, body { margin:0; width:1920px; height:1080px; background:transparent; overflow:hidden; }
-  </style>
-</head>
-<body>
-  <div id="root" data-composition-id="main" data-start="0" data-duration="5" data-width="1920" data-height="1080" data-fps="30"></div>
-</body>
-</html>`;
-  refreshPreview();
-  setStatus("Ready. For Export HQ, run the local engine on port 8787.");
+// Default: music player
+loadTemplate("music-player", { duration: 180 }).catch(() => {
+  setStatus("Could not load music player template.", "error");
 });

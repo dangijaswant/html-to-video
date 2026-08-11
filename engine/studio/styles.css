@@ -129,7 +129,7 @@ button:disabled {
 #editor {
   flex: 1;
   width: 100%;
-  min-height: 420px;
+  min-height: 280px;
   border: 0;
   border-top: 1px solid var(--line);
   resize: none;
@@ -139,6 +139,36 @@ button:disabled {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12.5px;
   line-height: 1.5;
+}
+
+.song-config {
+  display: grid;
+  gap: 10px;
+  padding: 0 16px 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.song-config label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.song-config input[type="text"],
+.song-config textarea {
+  font: inherit;
+  color: var(--ink);
+  background: #0a101c;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 10px;
+  resize: vertical;
+}
+
+.song-config button {
+  justify-self: start;
 }
 
 .preview-wrap {

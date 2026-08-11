@@ -447,7 +447,16 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === "GET" && url.pathname === "/api/template/aether") {
       const html = await fsp.readFile(path.join(ROOT, "index.html"), "utf8");
-      return sendJson(res, 200, { html });
+      return sendJson(res, 200, { html, id: "aether" });
+    }
+
+    if (
+      req.method === "GET" &&
+      (url.pathname === "/api/template/music-player" ||
+        url.pathname === "/api/template/default")
+    ) {
+      const html = await fsp.readFile(path.join(ROOT, "music-player.html"), "utf8");
+      return sendJson(res, 200, { html, id: "music-player" });
     }
 
     if (req.method === "POST" && url.pathname === "/api/render") {
