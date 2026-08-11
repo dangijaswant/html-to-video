@@ -33,17 +33,24 @@ function buildPreviewHtml(source) {
   const width = Number(document.getElementById("width").value) || 1920;
   const height = Number(document.getElementById("height").value) || 1080;
   const bootstrap = `
+<style data-studio-preview="1">
+  html, body { background: transparent !important; }
+</style>
 <script data-studio-preview="1">
 (function () {
   var COMP_W = ${width};
   var COMP_H = ${height};
 
   function fit() {
-    var s = Math.min(window.innerWidth / COMP_W, window.innerHeight / COMP_H);
+    var vw = window.innerWidth || COMP_W;
+    var vh = window.innerHeight || COMP_H;
+    var s = Math.min(vw / COMP_W, vh / COMP_H);
     if (!isFinite(s) || s <= 0) s = 1;
     document.documentElement.style.overflow = "hidden";
+    document.documentElement.style.background = "transparent";
     document.body.style.overflow = "hidden";
     document.body.style.margin = "0";
+    document.body.style.background = "transparent";
     document.body.style.transformOrigin = "0 0";
     document.body.style.transform = "scale(" + s + ")";
     document.body.style.width = COMP_W + "px";
@@ -51,22 +58,25 @@ function buildPreviewHtml(source) {
   }
 
   function playPreview() {
+    if (typeof gsap === "undefined") return false;
     var tls = window.__timelines || {};
     var tl = tls.main || Object.values(tls)[0];
     if (!tl) return false;
     try {
+      // Mid-sting frame so something is visible immediately
+      tl.progress(0.42);
       tl.repeat(-1);
-      tl.restart(true, false);
-      tl.play(0);
+      tl.play();
       return true;
     } catch (e) {
+      console.error("[studio preview]", e);
       return false;
     }
   }
 
   function tick(n) {
     fit();
-    if (!playPreview() && n < 40) setTimeout(function () { tick(n + 1); }, 50);
+    if (!playPreview() && n < 60) setTimeout(function () { tick(n + 1); }, 50);
   }
 
   window.addEventListener("resize", fit);
@@ -82,14 +92,19 @@ function buildPreviewHtml(source) {
   return `${source}\n${bootstrap}`;
 }
 
+let previewObjectUrl = null;
+
 function refreshPreview() {
   const html = editor.value.trim();
   if (!html) {
-    preview.removeAttribute("srcdoc");
+    preview.removeAttribute("src");
     setStatus("Paste composition HTML to preview.", "error");
     return;
   }
-  preview.srcdoc = buildPreviewHtml(html);
+  const doc = buildPreviewHtml(html);
+  if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
+  previewObjectUrl = URL.createObjectURL(new Blob([doc], { type: "text/html" }));
+  preview.src = previewObjectUrl;
 }
 
 async function loadAether() {
