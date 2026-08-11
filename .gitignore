@@ -1,0 +1,3 @@
+﻿engine/renders/
+engine/node_modules/
+engine/ffmpeg2pass*.log

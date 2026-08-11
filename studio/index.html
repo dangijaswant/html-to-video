@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>HTML → Video Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="top">
+        <div class="brand">HTML → <span>VIDEO</span> Studio</div>
+        <div class="badge">Preview live · Export HQ via local engine :8787</div>
+      </header>
+
+      <div class="main">
+        <section class="panel">
+          <h2>Composition HTML</h2>
+          <div class="toolbar">
+            <button type="button" id="loadAether">Load Aether template</button>
+            <button type="button" id="refreshPreview">Refresh preview</button>
+          </div>
+          <textarea id="editor" spellcheck="false" aria-label="HTML composition"></textarea>
+        </section>
+
+        <section class="panel">
+          <h2>Preview</h2>
+          <p class="hint">Checkerboard shows transparency. Preview is live HTML (not the final encode).</p>
+          <div class="preview-wrap">
+            <iframe id="preview" title="Composition preview" sandbox="allow-scripts allow-same-origin"></iframe>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Export settings</h2>
+          <div class="form">
+            <label>
+              Width
+              <input id="width" type="number" min="64" max="3840" step="2" value="1920" />
+            </label>
+            <label>
+              Height
+              <input id="height" type="number" min="64" max="2160" step="2" value="1080" />
+            </label>
+            <label>
+              FPS
+              <input id="fps" type="number" min="1" max="60" value="30" />
+            </label>
+            <label>
+              Duration (seconds)
+              <input id="duration" type="number" min="0.5" max="180" step="0.5" value="5" />
+            </label>
+            <div class="checks">
+              <label><input type="checkbox" name="fmt" value="webm" checked /> WebM VP9 alpha (HQ)</label>
+              <label><input type="checkbox" name="fmt" value="webp" checked /> WebP lossless</label>
+              <label><input type="checkbox" name="fmt" value="mov" /> ProRes 4444 MOV</label>
+              <label><input type="checkbox" name="fmt" value="mov-premul" /> ProRes premul (CapCut)</label>
+            </div>
+            <button class="primary" type="button" id="exportBtn">Export HQ</button>
+          </div>
+
+          <div class="progress-block">
+            <div class="bar" aria-hidden="true"><i id="progressFill"></i></div>
+            <div id="statusText">Ready. Exports use the real HyperFrames + FFmpeg pipeline.</div>
+          </div>
+
+          <div class="downloads" id="downloads"></div>
+        </section>
+      </div>
+    </div>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

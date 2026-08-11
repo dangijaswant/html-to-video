@@ -226,15 +226,29 @@
             MOV — built for overlays, not screen recordings.
           </p>
           <p class="lede" style="margin-top: -20px; font-size: 0.98rem">
-            This page is the live demo + docs. The <strong style="color: var(--ink)">full HQ engine</strong>
-            runs locally in your browser studio (HyperFrames + FFmpeg) — same quality as the CLI.
+            Live demo + studio UI. HQ export uses HyperFrames + FFmpeg on your machine
+            (same quality as the CLI) — preview works in the browser now.
+          </p>
+          <p style="margin-top: -12px; margin-bottom: 28px">
+            <a
+              href="./studio/"
+              style="display:inline-block;padding:12px 18px;border-radius:999px;background:linear-gradient(90deg,var(--teal),#0d9488);color:#041016;font-weight:700;text-decoration:none"
+              >Open live studio</a
+            >
+            <a
+              href="https://github.com/dangijaswant/html-to-video"
+              target="_blank"
+              rel="noreferrer"
+              style="margin-left:12px;color:var(--muted)"
+              >GitHub</a
+            >
           </p>
         </div>
         <div>
           <div class="stage">
             <video src="./assets/demo.webm" autoplay muted loop playsinline></video>
           </div>
-          <p class="hint">Sample alpha WebM only — full engine is local (below).</p>
+          <p class="hint">Sample alpha WebM · studio UI is live below.</p>
         </div>
       </section>
 
@@ -279,25 +293,23 @@
         </div>
       </div>
 
-      <h2>Full engine (local studio)</h2>
+      <h2>Full engine (HQ export)</h2>
       <p style="color: var(--muted); margin: -8px 0 16px; max-width: 60ch">
-        Same-quality exports need HyperFrames + FFmpeg on your machine. Open the studio UI, edit HTML,
-        and download WebM / WebP / ProRes without running PowerShell by hand.
+        Use the <a href="./studio/">live studio</a> to edit &amp; preview. For Export HQ, start the local
+        engine once — the studio talks to <code>127.0.0.1:8787</code>.
       </p>
-      <pre><code>cd transparent-demo
+      <pre><code>git clone https://github.com/dangijaswant/html-to-video.git
+cd html-to-video/engine
 npm run studio
 
-# → http://127.0.0.1:8787
-# Edit HTML → Export HQ → download outputs</code></pre>
+# keep engine running, then Export HQ from the live studio
+# or open http://127.0.0.1:8787</code></pre>
 
       <h2>CLI (same pipeline)</h2>
-      <pre><code>cd transparent-demo
+      <pre><code>cd html-to-video/engine
 npm run encode:hq
 
-# outputs
-# renders/aether-hq.webm
-# renders/aether-lossless.webp
-# renders/aether-hq.mov</code></pre>
+# outputs under engine/renders/</code></pre>
 
       <footer>
         Powered by

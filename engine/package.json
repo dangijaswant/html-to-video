@@ -1,0 +1,21 @@
+{
+  "name": "transparent-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx --yes hyperframes@0.7.106 preview",
+    "check": "npx --yes hyperframes@0.7.106 check",
+    "render": "npx --yes hyperframes@0.7.106 render",
+    "render:webm": "npx --yes hyperframes@0.7.106 render --format webm --quality high --fps 60 --output renders/aether-transparent.webm",
+    "render:mov": "npx --yes hyperframes@0.7.106 render --format mov --quality high --fps 60 --output renders/aether-transparent.mov",
+    "render:frames": "npx --yes hyperframes@0.7.106 render --format png-sequence --quality high --fps 60 --output renders/frames",
+    "encode:hq": "powershell -ExecutionPolicy Bypass -File ./encode-hq.ps1",
+    "encode:hq:reuse": "powershell -ExecutionPolicy Bypass -File ./encode-hq.ps1 -SkipCapture",
+    "encode:player": "powershell -ExecutionPolicy Bypass -File ./encode-player.ps1",
+    "encode:player:reuse": "powershell -ExecutionPolicy Bypass -File ./encode-player.ps1 -SkipCapture",
+    "encode:player:3m": "powershell -ExecutionPolicy Bypass -File ./encode-player-3m.ps1",
+    "studio": "node server.mjs",
+    "doctor": "npx --yes hyperframes@0.7.106 doctor",
+    "publish": "npx --yes hyperframes@0.7.106 publish"
+  }
+}
