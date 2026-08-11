@@ -28,45 +28,33 @@ function setProgress(pct) {
   progressFill.style.width = `${Math.max(0, Math.min(100, pct))}%`;
 }
 
-/** HyperFrames comps are paused + full-res; inject play + fit-to-iframe for studio preview. */
+/** HyperFrames comps are paused; inject loop of the visible mid-section for studio preview. */
 function buildPreviewHtml(source) {
-  const width = Number(document.getElementById("width").value) || 1920;
-  const height = Number(document.getElementById("height").value) || 1080;
   const bootstrap = `
 <style data-studio-preview="1">
-  html, body { background: transparent !important; }
+  html, body { background: transparent !important; overflow: hidden !important; }
 </style>
 <script data-studio-preview="1">
 (function () {
-  var COMP_W = ${width};
-  var COMP_H = ${height};
-
-  function fit() {
-    var vw = window.innerWidth || COMP_W;
-    var vh = window.innerHeight || COMP_H;
-    var s = Math.min(vw / COMP_W, vh / COMP_H);
-    if (!isFinite(s) || s <= 0) s = 1;
-    document.documentElement.style.overflow = "hidden";
-    document.documentElement.style.background = "transparent";
-    document.body.style.overflow = "hidden";
-    document.body.style.margin = "0";
-    document.body.style.background = "transparent";
-    document.body.style.transformOrigin = "0 0";
-    document.body.style.transform = "scale(" + s + ")";
-    document.body.style.width = COMP_W + "px";
-    document.body.style.height = COMP_H + "px";
-  }
-
   function playPreview() {
     if (typeof gsap === "undefined") return false;
     var tls = window.__timelines || {};
     var tl = tls.main || Object.values(tls)[0];
     if (!tl) return false;
     try {
-      // Mid-sting frame so something is visible immediately
-      tl.progress(0.42);
-      tl.repeat(-1);
-      tl.play();
+      // Avoid the final fade-to-empty: yoyo the visible middle of the sting
+      tl.pause();
+      var start = 0.22;
+      var end = 0.72;
+      tl.progress(start);
+      if (window.__studioPreviewTween) window.__studioPreviewTween.kill();
+      window.__studioPreviewTween = gsap.to(tl, {
+        progress: end,
+        duration: Math.max(1.6, (end - start) * tl.duration()),
+        ease: "none",
+        repeat: -1,
+        yoyo: true,
+      });
       return true;
     } catch (e) {
       console.error("[studio preview]", e);
@@ -75,11 +63,9 @@ function buildPreviewHtml(source) {
   }
 
   function tick(n) {
-    fit();
     if (!playPreview() && n < 60) setTimeout(function () { tick(n + 1); }, 50);
   }
 
-  window.addEventListener("resize", fit);
   if (document.readyState === "complete") tick(0);
   else window.addEventListener("load", function () { tick(0); });
   setTimeout(function () { tick(0); }, 0);
@@ -94,8 +80,28 @@ function buildPreviewHtml(source) {
 
 let previewObjectUrl = null;
 
+function fitPreviewFrame(width, height) {
+  const wrap = preview.parentElement;
+  if (!wrap) return;
+  const pad = 0;
+  const ww = Math.max(wrap.clientWidth - pad, 80);
+  const wh = Math.max(wrap.clientHeight - pad, 80);
+  const s = Math.min(ww / width, wh / height);
+  preview.style.width = `${width}px`;
+  preview.style.height = `${height}px`;
+  preview.style.transform = `scale(${s})`;
+  preview.style.transformOrigin = "top left";
+  preview.style.border = "0";
+  preview.style.background = "transparent";
+  // Collapse layout to the scaled visual size so the checkerboard fits
+  preview.style.marginBottom = `${height * s - height}px`;
+  preview.style.marginRight = `${width * s - width}px`;
+}
+
 function refreshPreview() {
   const html = editor.value.trim();
+  const width = Number(document.getElementById("width").value) || 1920;
+  const height = Number(document.getElementById("height").value) || 1080;
   if (!html) {
     preview.removeAttribute("src");
     setStatus("Paste composition HTML to preview.", "error");
@@ -104,6 +110,10 @@ function refreshPreview() {
   const doc = buildPreviewHtml(html);
   if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
   previewObjectUrl = URL.createObjectURL(new Blob([doc], { type: "text/html" }));
+
+  preview.onload = () => {
+    fitPreviewFrame(width, height);
+  };
   preview.src = previewObjectUrl;
 }
 
@@ -119,7 +129,6 @@ async function loadAether() {
     return;
   }
 
-  // Pages / remote host: static template, export still hits localhost engine
   try {
     const res = await fetch(new URL("../templates/aether.html", location.href));
     if (!res.ok) throw new Error("Template missing");
@@ -226,6 +235,12 @@ editor.addEventListener("keydown", (e) => {
 
 ["width", "height"].forEach((id) => {
   document.getElementById(id).addEventListener("change", refreshPreview);
+});
+
+window.addEventListener("resize", () => {
+  const width = Number(document.getElementById("width").value) || 1920;
+  const height = Number(document.getElementById("height").value) || 1080;
+  if (preview.src) fitPreviewFrame(width, height);
 });
 
 loadAether().catch(() => {
