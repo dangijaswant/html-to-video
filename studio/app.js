@@ -86,10 +86,26 @@ function applySongMeta() {
 }
 
 /** HyperFrames comps are paused; preview plays (sped up for long timelines). */
-function buildPreviewHtml(source) {
+function buildPreviewHtml(source, width, height, viewW, viewH) {
+  const s = Math.min(viewW / width, viewH / height);
   const bootstrap = `
 <style data-studio-preview="1">
-  html, body { background: transparent !important; overflow: hidden !important; }
+  html, body {
+    width: 100% !important;
+    height: 100% !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    background: transparent !important;
+    display: grid !important;
+    place-items: center !important;
+  }
+  #root {
+    width: ${width}px !important;
+    height: ${height}px !important;
+    transform: scale(${s}) !important;
+    transform-origin: center center !important;
+    flex-shrink: 0 !important;
+  }
 </style>
 <script data-studio-preview="1">
 (function () {
@@ -103,7 +119,6 @@ function buildPreviewHtml(source) {
       tl.pause();
       var dur = tl.duration() || 1;
       if (dur > 12) {
-        // Long comps (e.g. 3:00 player): scrub full range in ~10s
         tl.progress(0);
         tl.timeScale(dur / 10);
         tl.play(0);
@@ -145,20 +160,14 @@ function buildPreviewHtml(source) {
 
 let previewObjectUrl = null;
 
-function fitPreviewFrame(width, height) {
-  const wrap = preview.parentElement;
-  if (!wrap) return;
-  const ww = Math.max(wrap.clientWidth, 80);
-  const wh = Math.max(wrap.clientHeight, 80);
-  const s = Math.min(ww / width, wh / height);
-  preview.style.width = `${width}px`;
-  preview.style.height = `${height}px`;
-  preview.style.transform = `scale(${s})`;
-  preview.style.transformOrigin = "top left";
+function fitPreviewFrame() {
+  preview.style.width = "100%";
+  preview.style.height = "100%";
+  preview.style.minHeight = "400px";
+  preview.style.transform = "none";
+  preview.style.margin = "0";
   preview.style.border = "0";
   preview.style.background = "transparent";
-  preview.style.marginBottom = `${height * s - height}px`;
-  preview.style.marginRight = `${width * s - width}px`;
 }
 
 function refreshPreview() {
@@ -170,13 +179,15 @@ function refreshPreview() {
     setStatus("Paste composition HTML to preview.", "error");
     return;
   }
-  const doc = buildPreviewHtml(html);
+  const wrap = preview.parentElement;
+  const viewW = Math.max(wrap?.clientWidth || 800, 80);
+  const viewH = Math.max(wrap?.clientHeight || 420, 80);
+  const doc = buildPreviewHtml(html, width, height, viewW, viewH);
   if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
   previewObjectUrl = URL.createObjectURL(new Blob([doc], { type: "text/html" }));
 
-  preview.onload = () => {
-    fitPreviewFrame(width, height);
-  };
+  fitPreviewFrame();
+  preview.onload = () => fitPreviewFrame();
   preview.src = previewObjectUrl;
 }
 
@@ -325,9 +336,7 @@ songNameInput.addEventListener("change", applySongMeta);
 songDescInput.addEventListener("change", applySongMeta);
 
 window.addEventListener("resize", () => {
-  const width = Number(document.getElementById("width").value) || 1920;
-  const height = Number(document.getElementById("height").value) || 1080;
-  if (preview.src) fitPreviewFrame(width, height);
+  if (preview.src) refreshPreview();
 });
 
 // Default: music player
