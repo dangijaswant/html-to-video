@@ -225,12 +225,16 @@
             Frame-accurate HTML/CSS/GSAP capture to transparent WebM, lossless WebP, and ProRes
             MOV — built for overlays, not screen recordings.
           </p>
+          <p class="lede" style="margin-top: -20px; font-size: 0.98rem">
+            This page is the live demo + docs. The <strong style="color: var(--ink)">full HQ engine</strong>
+            runs locally in your browser studio (HyperFrames + FFmpeg) — same quality as the CLI.
+          </p>
         </div>
         <div>
           <div class="stage">
             <video src="./assets/demo.webm" autoplay muted loop playsinline></video>
           </div>
-          <p class="hint">Checkerboard = real alpha channel (VP9 WebM).</p>
+          <p class="hint">Sample alpha WebM only — full engine is local (below).</p>
         </div>
       </section>
 
@@ -275,7 +279,18 @@
         </div>
       </div>
 
-      <h2>Run locally</h2>
+      <h2>Full engine (local studio)</h2>
+      <p style="color: var(--muted); margin: -8px 0 16px; max-width: 60ch">
+        Same-quality exports need HyperFrames + FFmpeg on your machine. Open the studio UI, edit HTML,
+        and download WebM / WebP / ProRes without running PowerShell by hand.
+      </p>
+      <pre><code>cd transparent-demo
+npm run studio
+
+# → http://127.0.0.1:8787
+# Edit HTML → Export HQ → download outputs</code></pre>
+
+      <h2>CLI (same pipeline)</h2>
       <pre><code>cd transparent-demo
 npm run encode:hq
 
