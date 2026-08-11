@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Turn HTML/CSS/GSAP animations into transparent WebM, WebP, and ProRes MOV — frame-accurate, alpha-ready."
+    />
+    <meta name="theme-color" content="#0b1220" />
+    <title>HTML → Transparent Video</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg0: #0b1220;
+        --bg1: #121a2b;
+        --ink: #f1f5f9;
+        --muted: #94a3b8;
+        --line: rgba(148, 163, 184, 0.22);
+        --teal: #14b8a6;
+        --orange: #fb923c;
+        --card: rgba(255, 255, 255, 0.04);
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        min-height: 100vh;
+        font-family: "DM Sans", sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(ellipse 70% 50% at 15% 0%, rgba(20, 184, 166, 0.18), transparent 55%),
+          radial-gradient(ellipse 60% 45% at 90% 10%, rgba(251, 146, 60, 0.12), transparent 50%),
+          linear-gradient(165deg, var(--bg0), var(--bg1));
+        line-height: 1.55;
+      }
+
+      .wrap {
+        width: min(1080px, calc(100% - 40px));
+        margin: 0 auto;
+        padding: 56px 0 80px;
+      }
+
+      .brand {
+        font-family: "Bebas Neue", sans-serif;
+        font-size: clamp(3rem, 8vw, 5.5rem);
+        letter-spacing: 0.06em;
+        line-height: 0.92;
+        margin-bottom: 14px;
+      }
+
+      .brand span {
+        background: linear-gradient(90deg, var(--teal), var(--orange));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+
+      .lede {
+        max-width: 42ch;
+        color: var(--muted);
+        font-size: 1.1rem;
+        margin-bottom: 36px;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 36px;
+        align-items: center;
+        margin-bottom: 56px;
+      }
+
+      @media (max-width: 860px) {
+        .hero {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .stage {
+        aspect-ratio: 16 / 9;
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        overflow: hidden;
+        background-color: #1e293b;
+        background-image:
+          linear-gradient(45deg, #334155 25%, transparent 25%),
+          linear-gradient(-45deg, #334155 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, #334155 75%),
+          linear-gradient(-45deg, transparent 75%, #334155 75%);
+        background-size: 28px 28px;
+        background-position:
+          0 0,
+          0 14px,
+          14px -14px,
+          -14px 0;
+        box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35);
+      }
+
+      .stage video {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
+      }
+
+      .hint {
+        margin-top: 10px;
+        font-size: 0.88rem;
+        color: var(--muted);
+      }
+
+      h2 {
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 2rem;
+        letter-spacing: 0.05em;
+        margin-bottom: 16px;
+      }
+
+      .pipeline {
+        display: grid;
+        gap: 12px;
+        margin-bottom: 48px;
+      }
+
+      .step {
+        display: grid;
+        grid-template-columns: 56px 1fr;
+        gap: 16px;
+        align-items: start;
+        padding: 18px 20px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--card);
+      }
+
+      .num {
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 1.8rem;
+        letter-spacing: 0.04em;
+        color: var(--teal);
+      }
+
+      .step h3 {
+        font-size: 1.05rem;
+        margin-bottom: 4px;
+      }
+
+      .step p {
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .formats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-bottom: 48px;
+      }
+
+      @media (max-width: 720px) {
+        .formats {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .fmt {
+        padding: 18px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: var(--card);
+      }
+
+      .fmt strong {
+        display: block;
+        margin-bottom: 6px;
+      }
+
+      .fmt span {
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      pre {
+        overflow-x: auto;
+        padding: 18px 20px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: rgba(0, 0, 0, 0.35);
+        font-size: 0.88rem;
+        line-height: 1.6;
+        margin-bottom: 20px;
+      }
+
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+
+      footer {
+        margin-top: 40px;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      a {
+        color: var(--teal);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <section class="hero">
+        <div>
+          <h1 class="brand">HTML → <span>VIDEO</span></h1>
+          <p class="lede">
+            Frame-accurate HTML/CSS/GSAP capture to transparent WebM, lossless WebP, and ProRes
+            MOV — built for overlays, not screen recordings.
+          </p>
+        </div>
+        <div>
+          <div class="stage">
+            <video src="./assets/demo.webm" autoplay muted loop playsinline></video>
+          </div>
+          <p class="hint">Checkerboard = real alpha channel (VP9 WebM).</p>
+        </div>
+      </section>
+
+      <h2>Pipeline</h2>
+      <div class="pipeline">
+        <div class="step">
+          <div class="num">01</div>
+          <div>
+            <h3>Author in HTML</h3>
+            <p>Transparent background. Seekable GSAP timeline. No wall-clock animations.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">02</div>
+          <div>
+            <h3>Capture PNG frames</h3>
+            <p>HyperFrames drives a virtual clock and dumps lossless RGBA frames.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num">03</div>
+          <div>
+            <h3>Encode alpha outputs</h3>
+            <p>FFmpeg → animated WebP (lossless), VP9 WebM, ProRes 4444 MOV.</p>
+          </div>
+        </div>
+      </div>
+
+      <h2>Formats</h2>
+      <div class="formats">
+        <div class="fmt">
+          <strong>WebM (VP9)</strong>
+          <span>Best for web overlays. Chrome / Firefox / Edge.</span>
+        </div>
+        <div class="fmt">
+          <strong>WebP</strong>
+          <span>Lossless animated image with alpha. Open in Chrome.</span>
+        </div>
+        <div class="fmt">
+          <strong>ProRes 4444</strong>
+          <span>Editor master for Premiere, AE, CapCut.</span>
+        </div>
+      </div>
+
+      <h2>Run locally</h2>
+      <pre><code>cd transparent-demo
+npm run encode:hq
+
+# outputs
+# renders/aether-hq.webm
+# renders/aether-lossless.webp
+# renders/aether-hq.mov</code></pre>
+
+      <footer>
+        Powered by
+        <a href="https://github.com/heygen-com/hyperframes" target="_blank" rel="noreferrer"
+          >HyperFrames</a
+        >
+        + FFmpeg · Demo by dangijaswant
+      </footer>
+    </main>
+  </body>
+</html>
