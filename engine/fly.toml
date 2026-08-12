@@ -1,0 +1,33 @@
+# Exported by Fly launch; name may change on first deploy
+app = "html-to-video-engine"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  STUDIO_NO_OPEN = "1"
+  HYPERFRAMES_SKIP_SKILLS = "1"
+  HOST = "0.0.0.0"
+  CORS_ORIGIN = "https://dangijaswant.github.io"
+  NODE_OPTIONS = "--max-old-space-size=3072"
+
+[http_service]
+  internal_port = 8787
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "45s"
+    method = "GET"
+    path = "/api/health"
+
+[[vm]]
+  memory = "2gb"
+  cpu_kind = "shared"
+  cpus = 2

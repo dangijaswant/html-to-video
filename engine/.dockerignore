@@ -1,0 +1,8 @@
+node_modules
+renders
+npm-debug.log*
+.git
+.gitignore
+*.ps1
+CLAUDE.md
+AGENTS.md

@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: html-to-video-engine
+    runtime: docker
+    dockerfilePath: ./engine/Dockerfile
+    dockerContext: ./engine
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: STUDIO_NO_OPEN
+        value: "1"
+      - key: HYPERFRAMES_SKIP_SKILLS
+        value: "1"
+      - key: HOST
+        value: "0.0.0.0"
+      - key: NODE_OPTIONS
+        value: "--max-old-space-size=3072"
+      - key: CORS_ORIGIN
+        value: "https://dangijaswant.github.io"

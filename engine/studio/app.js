@@ -7,11 +7,16 @@ const downloads = document.getElementById("downloads");
 const songNameInput = document.getElementById("songName");
 const songDescInput = document.getElementById("songDescInput");
 
-/** Local HQ API (HyperFrames + FFmpeg). On GitHub Pages, point at localhost. */
-const API_BASE =
-  location.hostname === "127.0.0.1" || location.hostname === "localhost"
-    ? ""
-    : "http://127.0.0.1:8787";
+/** HQ API: local same-origin, config.js override, or localhost fallback for Pages. */
+const API_BASE = (() => {
+  if (typeof window !== "undefined" && window.STUDIO_API_BASE) {
+    return String(window.STUDIO_API_BASE).replace(/\/$/, "");
+  }
+  if (location.hostname === "127.0.0.1" || location.hostname === "localhost") {
+    return "";
+  }
+  return "http://127.0.0.1:8787";
+})();
 
 function api(path) {
   return `${API_BASE}${path}`;

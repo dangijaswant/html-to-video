@@ -12,7 +12,11 @@ const ROOT = __dirname;
 const STUDIO_DIR = path.join(ROOT, "studio");
 const JOBS_DIR = path.join(ROOT, "renders", "jobs");
 const PORT = Number(process.env.PORT || 8787);
+const HOST = process.env.HOST || "0.0.0.0";
 const HF_VERSION = "0.7.106";
+const CORS_ORIGIN = process.env.CORS_ORIGIN || "*";
+const MAX_DURATION = Number(process.env.MAX_DURATION || 180);
+const MAX_BODY_BYTES = Number(process.env.MAX_BODY_BYTES || 2_500_000);
 
 // Windows: refresh PATH from Machine+User (same as encode-hq.ps1) so FFmpeg
 // is visible even when the Node process was started without a full login PATH.
@@ -41,7 +45,9 @@ function sendJson(res, status, data) {
   const body = JSON.stringify(data);
   res.writeHead(status, {
     "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Origin": CORS_ORIGIN,
+    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
   });
   res.end(body);
 }
@@ -65,7 +71,14 @@ function contentType(filePath) {
 
 async function readBody(req) {
   const chunks = [];
-  for await (const chunk of req) chunks.push(chunk);
+  let size = 0;
+  for await (const chunk of req) {
+    size += chunk.length;
+    if (size > MAX_BODY_BYTES) {
+      throw new Error(`Request body too large (max ${MAX_BODY_BYTES} bytes)`);
+    }
+    chunks.push(chunk);
+  }
   const raw = Buffer.concat(chunks).toString("utf8");
   if (!raw) return {};
   return JSON.parse(raw);
@@ -433,7 +446,7 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === "OPTIONS") {
     res.writeHead(204, {
-      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Origin": CORS_ORIGIN,
       "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type",
     });
@@ -442,7 +455,12 @@ const server = http.createServer(async (req, res) => {
 
   try {
     if (req.method === "GET" && url.pathname === "/api/health") {
-      return sendJson(res, 200, { ok: true, engine: "hyperframes+ffmpeg" });
+      return sendJson(res, 200, {
+        ok: true,
+        engine: "hyperframes+ffmpeg",
+        version: HF_VERSION,
+        host: process.env.RENDER_EXTERNAL_URL || process.env.FLY_APP_NAME || "local",
+      });
     }
 
     if (req.method === "GET" && url.pathname === "/api/template/aether") {
@@ -467,7 +485,7 @@ const server = http.createServer(async (req, res) => {
       const width = Number(body.width || 1920);
       const height = Number(body.height || 1080);
       const fps = Number(body.fps || 30);
-      const duration = Number(body.duration || 5);
+      const duration = Math.min(Number(body.duration || 5), MAX_DURATION);
       let formats = Array.isArray(body.formats) ? body.formats : ["webm"];
       formats = formats.filter((f) =>
         ["webm", "webp", "mov", "mov-premul"].includes(f)
@@ -566,10 +584,11 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, HOST, () => {
   const url = `http://127.0.0.1:${PORT}`;
   const nets = networkInterfaces();
   console.log(`\nHTML → Video Studio`);
+  console.log(`  Bind:    ${HOST}:${PORT}`);
   console.log(`  Local:   ${url}`);
   for (const list of Object.values(nets)) {
     for (const n of list || []) {
@@ -580,7 +599,12 @@ server.listen(PORT, () => {
   }
   console.log(`  Engine:  HyperFrames ${HF_VERSION} + FFmpeg (HQ alpha)\n`);
 
-  if (process.env.STUDIO_NO_OPEN !== "1") {
+  const shouldOpen =
+    process.env.STUDIO_NO_OPEN !== "1" &&
+    !process.env.RENDER &&
+    !process.env.FLY_APP_NAME &&
+    !process.env.RAILWAY_ENVIRONMENT;
+  if (shouldOpen) {
     const openCmd =
       process.platform === "win32"
         ? ["cmd", ["/c", "start", "", url]]
