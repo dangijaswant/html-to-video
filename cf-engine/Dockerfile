@@ -36,9 +36,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 COPY app/package.json ./
-RUN npx --yes hyperframes@0.7.106 browser --install \
-  || npx --yes puppeteer browsers install chrome-headless-shell \
-  || true
+# Prefetch HyperFrames CLI + Chrome headless shell for frame capture
+RUN npx --yes hyperframes@0.7.106 --version \
+  && (npx --yes puppeteer browsers install chrome-headless-shell || true) \
+  && (npx --yes hyperframes@0.7.106 browser 2>/dev/null || true)
 
 COPY app/ ./
 
