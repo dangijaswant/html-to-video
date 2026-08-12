@@ -98,7 +98,12 @@ Russ</textarea>
         </section>
       </div>
     </div>
-    <script src="./config.js?v=11"></script>
-    <script type="module" src="./app.js?v=11"></script>
+    <script>
+      // Inline so a cached config.js cannot break Export HQ
+      window.STUDIO_API_BASE =
+        "https://html-to-video-api.jaswantdangi00.workers.dev";
+    </script>
+    <script src="./config.js?v=12"></script>
+    <script src="./app.js?v=12"></script>
   </body>
 </html>

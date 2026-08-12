@@ -7,16 +7,24 @@ const downloads = document.getElementById("downloads");
 const songNameInput = document.getElementById("songName");
 const songDescInput = document.getElementById("songDescInput");
 
-/** HQ API: local same-origin, config.js override, or localhost fallback for Pages. */
+/** Live free HQ API (Cloudflare Worker → GitHub Actions). */
+const DEFAULT_LIVE_API = "https://html-to-video-api.jaswantdangi00.workers.dev";
+
+/** HQ API: config override, same-origin on localhost, else live Worker (never force :8787 on Pages). */
 const API_BASE = (() => {
-  if (typeof window !== "undefined" && window.STUDIO_API_BASE) {
-    return String(window.STUDIO_API_BASE).replace(/\/$/, "");
-  }
-  if (location.hostname === "127.0.0.1" || location.hostname === "localhost") {
-    return "";
-  }
-  return "http://127.0.0.1:8787";
+  const fromConfig =
+    typeof window !== "undefined" && window.STUDIO_API_BASE != null
+      ? String(window.STUDIO_API_BASE).trim().replace(/\/$/, "")
+      : "";
+  if (fromConfig) return fromConfig;
+  const host = location.hostname;
+  if (host === "127.0.0.1" || host === "localhost") return "";
+  return DEFAULT_LIVE_API;
 })();
+
+if (typeof window !== "undefined") {
+  window.__HTML_TO_VIDEO_API_BASE = API_BASE || location.origin;
+}
 
 function api(path) {
   if (/^https?:\/\//i.test(path)) return path;
