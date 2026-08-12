@@ -1,0 +1,15 @@
+name = "html-to-video-api"
+main = "src/index.ts"
+compatibility_date = "2025-10-01"
+workers_dev = true
+
+[vars]
+CORS_ORIGIN = "https://dangijaswant.github.io"
+GITHUB_OWNER = "dangijaswant"
+GITHUB_REPO = "html-to-video"
+MAX_DURATION = "30"
+
+[[kv_namespaces]]
+binding = "JOBS"
+id = "9ade4ec8cfa14276bdb9fa2f17d0b1e9"
+preview_id = "53d79be1eb1f41599a168cf6740ff9d1"

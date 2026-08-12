@@ -1,0 +1,198 @@
+name: Render HQ Job
+
+on:
+  repository_dispatch:
+    types: [html-to-video-render]
+  workflow_dispatch:
+    inputs:
+      job_id:
+        description: Job id from the Worker API
+        required: true
+        type: string
+
+concurrency:
+  group: render-hq
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      API_BASE: ${{ secrets.RENDER_API_BASE }}
+      RENDER_SECRET: ${{ secrets.RENDER_SECRET }}
+      HF_VERSION: "0.7.106"
+      HYPERFRAMES_SKIP_SKILLS: "1"
+      JOB_ID: ${{ github.event.client_payload.job_id || inputs.job_id }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Validate
+        run: |
+          test -n "$API_BASE" || (echo "Missing RENDER_API_BASE" && exit 1)
+          test -n "$RENDER_SECRET" || (echo "Missing RENDER_SECRET" && exit 1)
+          test -n "$JOB_ID" || (echo "Missing job id" && exit 1)
+
+      - name: Mark running
+        run: |
+          curl -fsS -X POST "$API_BASE/api/internal/jobs/$JOB_ID/status" \
+            -H "Content-Type: application/json" \
+            -H "X-Render-Secret: $RENDER_SECRET" \
+            -d '{"status":"running","stage":"capturing","progress":10}'
+
+      - name: Fetch + patch composition
+        run: |
+          mkdir -p work/out work/frames
+          curl -fsS "$API_BASE/api/internal/jobs/$JOB_ID/html" \
+            -H "X-Render-Secret: $RENDER_SECRET" > work/job.json
+          node <<'NODE'
+          const fs = require('fs');
+          const job = JSON.parse(fs.readFileSync('work/job.json','utf8'));
+          let html = job.html;
+          const setAttr = (src, name, value) => {
+            const re = new RegExp(`(data-${name}=)(["'])(.*?)\\2`, 'i');
+            if (re.test(src)) return src.replace(re, `$1$2${value}$2`);
+            return src.replace(/(<div[^>]*\bid=["']root["'][^>]*)(>)/i, `$1 data-${name}="${value}"$2`);
+          };
+          html = setAttr(html, 'width', String(job.width));
+          html = setAttr(html, 'height', String(job.height));
+          html = setAttr(html, 'duration', String(job.duration));
+          html = setAttr(html, 'fps', String(job.fps));
+          fs.writeFileSync('work/composition.html', html);
+          fs.writeFileSync('work/settings.json', JSON.stringify({
+            width: job.width, height: job.height, fps: job.fps,
+            duration: job.duration, formats: job.formats
+          }));
+          // Minimal hyperframes project markers
+          fs.writeFileSync('work/hyperframes.json', JSON.stringify({ version: 1 }, null, 2));
+          fs.writeFileSync('work/package.json', JSON.stringify({ name: `job-${job.id}`, private: true, type: 'module' }));
+          console.log(job.id, job.formats, job.duration + 's', job.fps + 'fps');
+          NODE
+
+      - name: Capture PNG frames
+        working-directory: work
+        run: |
+          npx --yes hyperframes@${HF_VERSION} browser ensure || true
+          npx --yes hyperframes@${HF_VERSION} render \
+            --composition composition.html \
+            --format png-sequence \
+            --fps "$(node -p 'require(\"./settings.json\").fps')" \
+            --quality high \
+            --workers 2 \
+            --output frames
+
+      - name: Encode + publish release assets
+        working-directory: work
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          FPS=$(node -p 'require("./settings.json").fps')
+          FORMATS=$(node -p 'JSON.stringify(require("./settings.json").formats)')
+          SAMPLE=$(ls frames/*.png | sort | head -n1)
+          BASE=$(basename "$SAMPLE")
+          if [[ "$BASE" =~ ^(.+)([0-9]+)(\.png)$ ]]; then
+            PREFIX="${BASH_REMATCH[1]}"
+            DIGITS=${#BASH_REMATCH[2]}
+            PATTERN="frames/${PREFIX}%0${DIGITS}d.png"
+          else
+            echo "Unexpected frame name $BASE"; exit 1
+          fi
+          COUNT=$(ls frames/*.png | wc -l)
+          curl -fsS -X POST "$API_BASE/api/internal/jobs/$JOB_ID/status" \
+            -H "Content-Type: application/json" \
+            -H "X-Render-Secret: $RENDER_SECRET" \
+            -d "{\"status\":\"running\",\"stage\":\"encoding\",\"progress\":55,\"frameCount\":$COUNT}"
+
+          TAG="render-$JOB_ID"
+          REPO="${{ github.repository }}"
+          export TAG REPO
+          gh release delete "$TAG" -y 2>/dev/null || true
+          gh release create "$TAG" --title "Render $JOB_ID" --notes "HQ export from HTML → Video studio" --latest=false
+
+          echo "$FORMATS" | node -e 'let d="";process.stdin.on("data",c=>d+=c);process.stdin.on("end",()=>console.log(JSON.parse(d).join("\n")))' | while read -r FMT; do
+            case "$FMT" in
+              webp)
+                ffmpeg -y -framerate "$FPS" -i "$PATTERN" \
+                  -c:v libwebp_anim -lossless 1 -compression_level 6 -loop 0 -pix_fmt yuva420p \
+                  out/output.webp
+                gh release upload "$TAG" out/output.webp --clobber
+                ;;
+              webm)
+                ffmpeg -y -framerate "$FPS" -i "$PATTERN" \
+                  -c:v libvpx-vp9 -pix_fmt yuva420p -b:v 0 -crf 8 \
+                  -quality good -speed 4 -row-mt 1 -tile-columns 2 \
+                  -pass 1 -an -f null /dev/null
+                ffmpeg -y -framerate "$FPS" -i "$PATTERN" \
+                  -c:v libvpx-vp9 -pix_fmt yuva420p -b:v 0 -crf 8 \
+                  -quality good -speed 0 -row-mt 1 -tile-columns 2 \
+                  -auto-alt-ref 0 -metadata:s:v:0 alpha_mode=1 \
+                  -pass 2 -an out/output.webm
+                gh release upload "$TAG" out/output.webm --clobber
+                ;;
+              mov)
+                ffmpeg -y -framerate "$FPS" -i "$PATTERN" \
+                  -c:v prores_ks -profile:v 4444 -pix_fmt yuva444p10le \
+                  -vendor apl0 out/output.mov
+                gh release upload "$TAG" out/output.mov --clobber
+                ;;
+              mov-premul)
+                ffmpeg -y -framerate "$FPS" -i "$PATTERN" \
+                  -vf "premultiply=inplace=1" \
+                  -c:v prores_ks -profile:v 4444 -pix_fmt yuva444p10le \
+                  out/output-premul.mov
+                gh release upload "$TAG" out/output-premul.mov --clobber
+                ;;
+            esac
+          done
+
+          REPO="${{ github.repository }}"
+          ARTIFACTS_JSON=$(node -e '
+            const {execSync}=require("child_process");
+            const tag=process.env.TAG;
+            const repo=process.env.REPO;
+            const assets=JSON.parse(execSync("gh release view "+JSON.stringify(tag)+" --json assets",{encoding:"utf8"})).assets;
+            const labels={
+              "output.webp":"Lossless WebP",
+              "output.webm":"HQ WebM (VP9 alpha)",
+              "output.mov":"ProRes 4444 MOV",
+              "output-premul.mov":"ProRes premul (CapCut)"
+            };
+            console.log(JSON.stringify(assets.map(a=>({
+              name:a.name,
+              label:labels[a.name]||a.name,
+              url:"https://github.com/"+repo+"/releases/download/"+tag+"/"+a.name
+            }))));
+          ')
+
+          curl -fsS -X POST "$API_BASE/api/internal/jobs/$JOB_ID/artifacts" \
+            -H "Content-Type: application/json" \
+            -H "X-Render-Secret: $RENDER_SECRET" \
+            -d "{\"artifacts\":$ARTIFACTS_JSON}"
+
+      - name: Mark done
+        if: success()
+        run: |
+          curl -fsS -X POST "$API_BASE/api/internal/jobs/$JOB_ID/status" \
+            -H "Content-Type: application/json" \
+            -H "X-Render-Secret: $RENDER_SECRET" \
+            -d '{"status":"done","stage":"done","progress":100}'
+
+      - name: Mark error
+        if: failure()
+        run: |
+          curl -fsS -X POST "$API_BASE/api/internal/jobs/$JOB_ID/status" \
+            -H "Content-Type: application/json" \
+            -H "X-Render-Secret: $RENDER_SECRET" \
+            -d '{"status":"error","stage":"error","error":"GitHub Actions render failed — see Actions logs"}' || true
