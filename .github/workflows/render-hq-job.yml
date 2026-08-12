@@ -59,41 +59,81 @@ jobs:
           node <<'NODE'
           const fs = require('fs');
           const job = JSON.parse(fs.readFileSync('work/job.json','utf8'));
-          let html = job.html;
+          const width = job.width, height = job.height, duration = job.duration, fps = job.fps;
+          let html = String(job.html || '');
+
+          // Bare HTML (no HyperFrames root/clip) → wrap so capture has a finite timeline
+          if (!/\bid=["']root["']/i.test(html) || !/\bclip\b/i.test(html)) {
+            const bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+            const headMatch = html.match(/<head[^>]*>([\s\S]*)<\/head>/i);
+            const inner = (bodyMatch ? bodyMatch[1] : html).trim();
+            const headExtra = headMatch ? headMatch[1] : '';
+            html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=${width}, height=${height}"/>
+${headExtra}
+<style>html,body{margin:0;width:${width}px;height:${height}px;overflow:hidden;background:transparent}#root{position:relative;width:${width}px;height:${height}px}</style>
+</head><body>
+<div id="root" data-composition-id="main" data-start="0" data-duration="${duration}" data-width="${width}" data-height="${height}" data-fps="${fps}">
+  <div id="main-clip" class="stage clip" data-start="0" data-duration="${duration}" data-track-index="0">${inner}</div>
+</div>
+</body></html>`;
+          }
+
           const setAttr = (src, name, value) => {
             const re = new RegExp(`(data-${name}=)(["'])(.*?)\\2`, 'i');
             if (re.test(src)) return src.replace(re, `$1$2${value}$2`);
             return src.replace(/(<div[^>]*\bid=["']root["'][^>]*)(>)/i, `$1 data-${name}="${value}"$2`);
           };
-          html = setAttr(html, 'width', String(job.width));
-          html = setAttr(html, 'height', String(job.height));
-          html = setAttr(html, 'duration', String(job.duration));
-          html = setAttr(html, 'fps', String(job.fps));
+          html = setAttr(html, 'width', String(width));
+          html = setAttr(html, 'height', String(height));
+          html = setAttr(html, 'duration', String(duration));
+          html = setAttr(html, 'fps', String(fps));
+          html = html.replace(/(meta name=["']viewport["'][^>]*content=["'])[^"']*(["'])/i, `$1width=${width}, height=${height}$2`);
+          html = html.replace(/(html,\s*body\s*\{[^}]*?width:\s*)\d+px/i, `$1${width}px`);
+          html = html.replace(/(html,\s*body\s*\{[^}]*?height:\s*)\d+px/i, `$1${height}px`);
+          html = html.replace(/(#root\s*\{[^}]*?width:\s*)\d+px/i, `$1${width}px`);
+          html = html.replace(/(#root\s*\{[^}]*?height:\s*)\d+px/i, `$1${height}px`);
+          html = html.replace(
+            /(class=["'][^"']*clip[^"']*["'][^>]*data-duration=["'])\d+(\.\d+)?(["'])/gi,
+            `$1${duration}$3`
+          );
+
           fs.writeFileSync('work/composition.html', html);
           fs.writeFileSync('work/settings.json', JSON.stringify({
-            width: job.width, height: job.height, fps: job.fps,
-            duration: job.duration, formats: job.formats
+            width, height, fps, duration, formats: job.formats
           }));
-          // Minimal hyperframes project markers
-          fs.writeFileSync('work/hyperframes.json', JSON.stringify({ version: 1 }, null, 2));
+          fs.writeFileSync('work/hyperframes.json', JSON.stringify({
+            "$schema": "https://hyperframes.heygen.com/schema/hyperframes.json",
+            "registry": "https://raw.githubusercontent.com/heygen-com/hyperframes/main/registry",
+            "paths": { "blocks": "compositions", "components": "compositions/components", "assets": "assets" },
+            "media": { "autoProxy": true }
+          }, null, 2));
+          fs.writeFileSync('work/meta.json', JSON.stringify({
+            id: job.id, name: `job-${job.id}`, createdAt: new Date().toISOString()
+          }, null, 2));
           fs.writeFileSync('work/package.json', JSON.stringify({ name: `job-${job.id}`, private: true, type: 'module' }));
-          console.log(job.id, job.formats, job.duration + 's', job.fps + 'fps');
+          console.log(job.id, job.formats, duration + 's', fps + 'fps', 'bytes=' + html.length);
           NODE
 
       - name: Capture PNG frames
         working-directory: work
+        timeout-minutes: 20
         run: |
           set -euo pipefail
           FPS=$(node -p "require('./settings.json').fps")
-          echo "Capturing @ ${FPS}fps"
-          npx --yes hyperframes@${HF_VERSION} browser ensure || true
+          DUR=$(node -p "require('./settings.json').duration")
+          echo "Capturing @ ${FPS}fps duration=${DUR}s"
+          npx --yes hyperframes@${HF_VERSION} browser ensure
           npx --yes hyperframes@${HF_VERSION} render \
             --composition composition.html \
             --format png-sequence \
             --fps "$FPS" \
             --quality high \
-            --workers 2 \
+            --workers 1 \
             --output frames
+          COUNT=$(ls frames/*.png 2>/dev/null | wc -l)
+          echo "PNG frames: $COUNT"
+          test "$COUNT" -ge 1
           ls -la frames | head
 
       - name: Encode + publish release assets
