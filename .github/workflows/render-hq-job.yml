@@ -83,14 +83,18 @@ jobs:
       - name: Capture PNG frames
         working-directory: work
         run: |
+          set -euo pipefail
+          FPS=$(node -p "require('./settings.json').fps")
+          echo "Capturing @ ${FPS}fps"
           npx --yes hyperframes@${HF_VERSION} browser ensure || true
           npx --yes hyperframes@${HF_VERSION} render \
             --composition composition.html \
             --format png-sequence \
-            --fps "$(node -p 'require(\"./settings.json\").fps')" \
+            --fps "$FPS" \
             --quality high \
             --workers 2 \
             --output frames
+          ls -la frames | head
 
       - name: Encode + publish release assets
         working-directory: work
