@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      /* Transparent canvas — required for alpha WebM */
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: transparent;
+      }
+
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        background: transparent;
+      }
+
+      .stage {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: transparent;
+      }
+
+      .mark {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 28px;
+      }
+
+      .ring {
+        position: absolute;
+        width: 420px;
+        height: 420px;
+        border-radius: 50%;
+        border: 3px solid rgba(20, 184, 166, 0.55);
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.6);
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .ring-2 {
+        width: 520px;
+        height: 520px;
+        border-color: rgba(251, 146, 60, 0.4);
+      }
+
+      .orb {
+        width: 120px;
+        height: 120px;
+        border-radius: 36px;
+        background: linear-gradient(145deg, #14b8a6 0%, #0f766e 55%, #fb923c 120%);
+        box-shadow:
+          0 18px 50px rgba(15, 118, 110, 0.45),
+          inset 0 1px 0 rgba(255, 255, 255, 0.35);
+        display: grid;
+        place-items: center;
+        transform: scale(0.4);
+        opacity: 0;
+      }
+
+      .orb-inner {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.92);
+        transform: rotate(18deg);
+      }
+
+      .brand {
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 128px;
+        letter-spacing: 0.08em;
+        line-height: 0.9;
+        color: #f8fafc;
+        text-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+        opacity: 0;
+        transform: translateY(36px);
+      }
+
+      .tagline {
+        font-family: "DM Sans", sans-serif;
+        font-size: 28px;
+        font-weight: 500;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: rgba(248, 250, 252, 0.88);
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      .bar {
+        width: 0;
+        height: 4px;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #14b8a6, #fb923c);
+        margin-top: 4px;
+      }
+
+      .chips {
+        position: absolute;
+        bottom: 120px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 16px;
+      }
+
+      .chip {
+        font-family: "DM Sans", sans-serif;
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #0f172a;
+        background: rgba(248, 250, 252, 0.92);
+        padding: 12px 22px;
+        border-radius: 999px;
+        opacity: 0;
+        transform: translateY(24px);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="5"
+      data-width="1920"
+      data-height="1080"
+      data-fps="60"
+    >
+      <div id="logo-sting" class="stage clip" data-start="0" data-duration="5" data-track-index="0">
+        <div class="ring" id="ring"></div>
+        <div class="ring ring-2" id="ring2"></div>
+
+        <div class="mark">
+          <div class="orb" id="orb">
+            <div class="orb-inner" id="orbInner"></div>
+          </div>
+          <div class="brand" id="brand">AETHER</div>
+          <div class="tagline" id="tagline">Transparent motion · WebM alpha</div>
+          <div class="bar" id="bar"></div>
+        </div>
+
+        <div class="chips">
+          <div class="chip" id="chip1">VP9 alpha</div>
+          <div class="chip" id="chip2">1920×1080</div>
+          <div class="chip" id="chip3">HyperFrames</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      tl.to("#orb", { opacity: 1, scale: 1, duration: 0.7, ease: "back.out(1.7)" }, 0.15)
+        .to("#orbInner", { rotate: 45, duration: 0.8, ease: "power2.out" }, 0.2)
+        .to(
+          "#ring",
+          { opacity: 1, scale: 1, duration: 0.9, ease: "power2.out" },
+          0.25
+        )
+        .to(
+          "#ring2",
+          { opacity: 1, scale: 1, duration: 1.0, ease: "power2.out" },
+          0.35
+        )
+        .to("#brand", { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" }, 0.55)
+        .to("#tagline", { opacity: 1, y: 0, duration: 0.55, ease: "power2.out" }, 0.85)
+        .to("#bar", { width: 360, duration: 0.6, ease: "power2.inOut" }, 1.05)
+        .to(
+          "#chip1",
+          { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" },
+          1.35
+        )
+        .to(
+          "#chip2",
+          { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" },
+          1.5
+        )
+        .to(
+          "#chip3",
+          { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" },
+          1.65
+        )
+        .to("#ring", { scale: 1.08, duration: 2.2, ease: "sine.inOut", overwrite: "auto" }, 1.2)
+        .to("#ring2", { scale: 1.12, duration: 2.4, ease: "sine.inOut", overwrite: "auto" }, 1.4)
+        .to(
+          ["#orb", "#brand", "#tagline", "#bar", "#chip1", "#chip2", "#chip3", "#ring", "#ring2"],
+          { opacity: 0, duration: 0.55, ease: "power2.in" },
+          4.25
+        );
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

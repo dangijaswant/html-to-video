@@ -1,0 +1,10 @@
+{
+  "name": "transparent-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "studio": "node server.mjs",
+    "doctor": "npx --yes hyperframes@0.7.106 doctor"
+  }
+}

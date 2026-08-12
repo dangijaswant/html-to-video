@@ -1,0 +1,24 @@
+name = "html-to-video-engine"
+main = "src/index.ts"
+compatibility_date = "2025-10-01"
+workers_dev = true
+
+[vars]
+CORS_ORIGIN = "https://dangijaswant.github.io"
+
+[[containers]]
+class_name = "EngineContainer"
+image = "./Dockerfile"
+max_instances = 2
+
+  [containers.configuration]
+  # Chrome + FFmpeg HQ needs real RAM/CPU (Workers Paid / Containers)
+  instance_type = "standard-2"
+
+[[durable_objects.bindings]]
+name = "ENGINE"
+class_name = "EngineContainer"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["EngineContainer"]
