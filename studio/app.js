@@ -232,22 +232,29 @@ async function loadTemplate(id, { duration } = {}) {
   }
   syncSongFieldsFromHtml();
   refreshPreview();
+  const remote = /^https?:\/\//i.test(API_BASE);
   setStatus(
-    API_BASE
-      ? `${id} loaded. Export HQ needs local engine on :8787.`
-      : `${id} loaded.`
+    remote
+      ? `${id} loaded. Export uses free HQ engine (${API_BASE}).`
+      : API_BASE
+        ? `${id} loaded. Export HQ needs local engine on :8787.`
+        : `${id} loaded.`
   );
 }
 
 async function ensureEngine() {
+  const target = API_BASE || location.origin;
   try {
-    const res = await fetch(api("/api/health"), { signal: AbortSignal.timeout(2000) });
+    const res = await fetch(api("/api/health"), { signal: AbortSignal.timeout(8000) });
     const data = await res.json();
     if (!res.ok || !data.ok) throw new Error("Engine unhealthy");
     return true;
   } catch {
+    const remote = /^https?:\/\//i.test(API_BASE);
     setStatus(
-      "HQ engine not reachable at http://127.0.0.1:8787 — clone the repo and run: cd engine && npm run studio",
+      remote
+        ? `HQ engine not reachable at ${target}. Check network / Worker status.`
+        : `HQ engine not reachable at ${target} — clone the repo and run: cd engine && npm run studio`,
       "error"
     );
     return false;
@@ -279,7 +286,11 @@ async function exportHq() {
   exportBtn.disabled = true;
   downloads.innerHTML = "";
   setProgress(2);
-  setStatus("Checking local HQ engine…");
+  setStatus(
+    /^https?:\/\//i.test(API_BASE)
+      ? "Checking free HQ engine…"
+      : "Checking local HQ engine…"
+  );
 
   try {
     if (!(await ensureEngine())) return;
