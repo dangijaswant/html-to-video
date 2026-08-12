@@ -6,14 +6,12 @@ workers_dev = true
 [vars]
 CORS_ORIGIN = "https://dangijaswant.github.io"
 
+# Requires Cloudflare Workers Paid (Containers are paid-only)
 [[containers]]
 class_name = "EngineContainer"
 image = "./Dockerfile"
 max_instances = 2
-
-  [containers.configuration]
-  # Chrome + FFmpeg HQ needs real RAM/CPU (Workers Paid / Containers)
-  instance_type = "standard-2"
+instance_type = "standard-2"
 
 [[durable_objects.bindings]]
 name = "ENGINE"
