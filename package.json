@@ -1,0 +1,15 @@
+{
+  "name": "html-to-video",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "HTML/CSS/GSAP to transparent video (VP9 WebM, lossless WebP, ProRes 4444 MOV) — HyperFrames + FFmpeg engine, Cloudflare front-end, GitHub Actions render jobs.",
+  "license": "MIT",
+  "scripts": {
+    "test": "node scripts/tests/patch-job-composition.test.mjs",
+    "doctor": "npx --yes hyperframes@0.7.106 doctor"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "id": "job-wrapped",
+  "width": 1080,
+  "height": 1920,
+  "duration": 10,
+  "fps": 30,
+  "formats": ["webm", "webp"],
+  "html": "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\"/><meta name=\"viewport\" content=\"width=512, height=512\"/><style>html,body{margin:0;width:512px;height:512px;overflow:hidden;background:transparent}#root{position:relative;width:512px;height:512px}</style></head><body><div id=\"root\" data-composition-id=\"main\" data-start=\"0\" data-duration=\"4\" data-width=\"512\" data-height=\"512\" data-fps=\"60\"><div id=\"main-clip\" class=\"stage clip\" data-start=\"0\" data-duration=\"4\" data-track-index=\"0\"><div class=\"logo reveal\">Logo</div></div></div></body></html>"
+}

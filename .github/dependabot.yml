@@ -1,0 +1,18 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/cf-api"
+    schedule:
+      interval: "monthly"
+  - package-ecosystem: "npm"
+    directory: "/cf-engine"
+    schedule:
+      interval: "monthly"
+  - package-ecosystem: "npm"
+    directory: "/engine"
+    schedule:
+      interval: "monthly"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
