@@ -24,3 +24,8 @@ Then open http://127.0.0.1:8787 or use the live studio page (it calls localhost 
 cd engine
 npm run encode:hq
 ```
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+
